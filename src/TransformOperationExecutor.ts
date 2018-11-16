@@ -36,6 +36,8 @@ export class TransformOperationExecutor {
         isMap: boolean,
         level: number = 0) {
 
+        console.log(source, value, targetType, arrayType, isMap, level);
+
         if (Array.isArray(value) || value instanceof Set) {
             const newValue = arrayType && this.transformationType === TransformationType.PLAIN_TO_CLASS ? instantiateArrayType(arrayType) : [];
             (value as any[]).forEach((subValue, index) => {
@@ -147,7 +149,8 @@ export class TransformOperationExecutor {
                 if (value instanceof Map) {
                     subValue = value.get(valueKey);
                 } else if (value[valueKey] instanceof Function) {
-                    subValue = value[valueKey]();
+                    console.log("~~~~~~", key, source, value, targetType, isMap, level);
+                    subValue = this.callMethod(value, valueKey, targetType as any);
                 } else {
                     subValue = value[valueKey];
                 }
@@ -256,6 +259,7 @@ export class TransformOperationExecutor {
     }
 
     private applyCustomTransformations(value: any, target: Function, key: string, obj: any, transformationType: TransformationType) {
+        console.log("apply custom transformations", value, target, key, obj, transformationType);
         let metadatas = defaultMetadataStorage.findTransformMetadatas(target, key, this.transformationType);
 
         // apply versioning options
@@ -399,6 +403,29 @@ export class TransformOperationExecutor {
             return true;
 
         return this.options.groups.some(optionGroup => groups.indexOf(optionGroup) !== -1);
+    }
+
+    // Takes into account @Group decorator when invoking a method on a class that's being transformed.
+    private callMethod(value: any, valueKey: string, type: Function) {
+        console.log("call method", value, valueKey, type);
+        const method = value[valueKey] as Function;
+        const metadatas = defaultMetadataStorage.findGroupMetadata(type, valueKey);
+        console.log(`M E T A D A T A S`, metadatas);
+
+        if (metadatas == null) {
+            return method();
+        }
+
+        const maxIndex = Math.max(...metadatas.map(x => x.argIndex));
+        const args = new Array(maxIndex).fill(undefined);
+        for (const metadata of metadatas) {
+            args[metadata.argIndex] = this.options.groups;
+        }
+
+        console.log(metadatas);
+        const returnValue = value[valueKey](...args);
+        console.log("return value", returnValue);
+        return returnValue;
     }
 
 }

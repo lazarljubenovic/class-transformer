@@ -7,6 +7,7 @@ import {ExcludeMetadata} from "./metadata/ExcludeMetadata";
 import {TransformMetadata} from "./metadata/TransformMetadata";
 import {ClassTransformOptions} from "./ClassTransformOptions";
 import {TransformationType} from "./TransformOperationExecutor";
+import { GroupMetadata } from "./metadata/GroupMetadata";
 
 /**
  * Defines a custom logic for value transformation.
@@ -39,6 +40,16 @@ export function Expose(options?: ExposeOptions) {
     return function(object: Object|Function, propertyName?: string) {
         const metadata = new ExposeMetadata(object instanceof Function ? object : object.constructor, propertyName, options || {});
         defaultMetadataStorage.addExposeMetadata(metadata);
+    };
+}
+
+/**
+ * Marks that a method parameter should be injected with the array of groups passed to TransformOptions.groups.
+ */
+export function Groups(): ParameterDecorator {
+    return function (target: Function, methodKey: string, parameterIndex: number) {
+        const metadata = new GroupMetadata(target, methodKey, parameterIndex);
+        defaultMetadataStorage.addGroupMetadata(metadata);
     };
 }
 

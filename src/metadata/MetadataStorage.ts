@@ -3,6 +3,7 @@ import {ExposeMetadata} from "./ExposeMetadata";
 import {ExcludeMetadata} from "./ExcludeMetadata";
 import {TransformationType} from "../TransformOperationExecutor";
 import {TransformMetadata} from "./TransformMetadata";
+import {GroupMetadata} from "./GroupMetadata";
 
 /**
  * Storage all library metadata.
@@ -17,6 +18,7 @@ export class MetadataStorage {
     private _transformMetadatas = new Map<Function, Map<string, TransformMetadata[]>>();
     private _exposeMetadatas = new Map<Function, Map<string, ExposeMetadata>>();
     private _excludeMetadatas = new Map<Function, Map<string, ExcludeMetadata>>();
+    private _groupMetadatas = new Map<Function, Map<string, GroupMetadata[]>>();
     private _ancestorsMap = new Map<Function, Function[]>();
 
     // -------------------------------------------------------------------------
@@ -26,14 +28,14 @@ export class MetadataStorage {
     addTypeMetadata(metadata: TypeMetadata) {
         if (!this._typeMetadatas.has(metadata.target)) {
             this._typeMetadatas.set(metadata.target, new Map<string, TypeMetadata>());
-    }
+        }
         this._typeMetadatas.get(metadata.target).set(metadata.propertyName, metadata);
     }
 
     addTransformMetadata(metadata: TransformMetadata) {
         if (!this._transformMetadatas.has(metadata.target)) {
             this._transformMetadatas.set(metadata.target, new Map<string, TransformMetadata[]>());
-    }
+        }
         if (!this._transformMetadatas.get(metadata.target).has(metadata.propertyName)) {
             this._transformMetadatas.get(metadata.target).set(metadata.propertyName, []);
         }
@@ -43,15 +45,25 @@ export class MetadataStorage {
     addExposeMetadata(metadata: ExposeMetadata) {
         if (!this._exposeMetadatas.has(metadata.target)) {
             this._exposeMetadatas.set(metadata.target, new Map<string, ExposeMetadata>());
-    }
+        }
         this._exposeMetadatas.get(metadata.target).set(metadata.propertyName, metadata);
     }
 
     addExcludeMetadata(metadata: ExcludeMetadata) {
         if (!this._excludeMetadatas.has(metadata.target)) {
             this._excludeMetadatas.set(metadata.target, new Map<string, ExcludeMetadata>());
-    }
+        }
         this._excludeMetadatas.get(metadata.target).set(metadata.propertyName, metadata);
+    }
+
+    addGroupMetadata(metadata: GroupMetadata) {
+        if (!this._groupMetadatas.has(metadata.target)) {
+            this._groupMetadatas.set(metadata.target, new Map<string, GroupMetadata[]>());
+        }
+        if (!this._groupMetadatas.get(metadata.target).has(metadata.propertyName)) {
+            this._groupMetadatas.get(metadata.target).set(metadata.propertyName, []);
+        }
+        this._groupMetadatas.get(metadata.target).get(metadata.propertyName).push(metadata);
     }
 
     // -------------------------------------------------------------------------
@@ -93,6 +105,17 @@ export class MetadataStorage {
 
     findTypeMetadata(target: Function, propertyName: string) {
         return this.findMetadata(this._typeMetadatas, target, propertyName);
+    }
+
+    findGroupMetadata(target: Function, methodName: string) {
+        console.log('find metadata', target, methodName)
+        console.log(this._groupMetadatas)
+        const targetMap = this._groupMetadatas.get(target)
+        console.log('target map', targetMap)
+        if (targetMap == null) return null
+        const metadata = targetMap.get(methodName)
+        console.log('metadata', metadata)
+        return metadata
     }
 
     getStrategy(target: Function): "excludeAll"|"exposeAll"|"none" {
@@ -157,6 +180,7 @@ export class MetadataStorage {
         this._exposeMetadatas.clear();
         this._excludeMetadatas.clear();
         this._ancestorsMap.clear();
+        this._groupMetadatas.clear();
     }
 
     // -------------------------------------------------------------------------

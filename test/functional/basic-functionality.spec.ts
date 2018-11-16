@@ -7,7 +7,7 @@ import {
     classToClass, classToClassFromExist
 } from "../../src/index";
 import {defaultMetadataStorage} from "../../src/storage";
-import {Exclude, Expose, Type} from "../../src/decorators";
+import {Exclude, Expose, Type, Groups} from "../../src/decorators";
 import {expect} from "chai";
 
 describe("basic functionality", () => {
@@ -1182,6 +1182,47 @@ describe("basic functionality", () => {
                 status: 1
             }]
         });
+    });
+
+    it.only("should inject given groups where @Groups decorator is used", () => {
+        defaultMetadataStorage.clear();
+
+        class Photo {
+
+            filename: string;
+
+            @Expose()
+            fullPath (@Groups() groups: string[]) {
+                console.log(`=========`, groups, `========`);
+                if (groups.some(g => g === "admin")) {
+                    return `/home/admin/dir/${this.filename}`;
+                } else {
+                    return `/home/user/dir/${this.filename}`;
+                }
+            }
+
+        }
+
+        const photo = new Photo();
+        photo.filename = "file.jpg";
+
+        const plainUserPhoto = classToPlain(photo, {
+            groups: ["user"],
+        });
+
+        plainUserPhoto.should.be.eql({
+          filename: `file.jpg`,
+          fullPath: `/home/user/dir/file.jpg`,
+        });
+
+        // const plainAdminPhoto = classToPlain(photo, {
+        //     groups: ["admin"],
+        // });
+
+        // plainAdminPhoto.should.be.eql({
+        //   filename: `file.jpg`,
+        //   fullPath: `/home/admin/dir/file.jpg`,
+        // });
     });
 
     it("should expose only properties that match given version", () => {
